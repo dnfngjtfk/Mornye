@@ -461,7 +461,7 @@ class _PlaybackSettingsPageState extends ConsumerState<PlaybackSettingsPage>
             ),
             const SliverToBoxAdapter(child: DiscordPresenceSettings()),
           ],
-          if (isDesktopPlatform) ...[
+          if (Platform.isIOS || isDesktopPlatform) ...[
             const SliverToBoxAdapter(
               child: SettingsSectionHeader(title: 'Last.fm'),
             ),

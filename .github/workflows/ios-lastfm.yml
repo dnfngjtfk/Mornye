@@ -1,0 +1,124 @@
+name: iOS Last.fm (unsigned IPA)
+
+# Форкаемый лёгкий workflow: собирает неподписанный IPA с Last.fm на iOS.
+# Discord Presence опускается (нужен приватный партнёрский SDK).
+#
+# Как пользоваться:
+#   1. Секреты форка: Settings -> Secrets and variables -> Actions
+#      LASTFM_API_KEY, LASTFM_API_SECRET  (https://www.last.fm/api/account/create)
+#   2. Actions -> "iOS Last.fm (unsigned IPA)" -> Run workflow
+#   3. Артефакт ios-ipa-lastfm со сборкой Mornye-ios-lastfm-unsigned.ipa
+#   4. Установка на телефон: LiveContainer (сам переподпишет development-ключом)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Build unsigned iOS IPA (Lite)
+    runs-on: macos-15
+    env:
+      MORNYE_DISCORD_SDK: "0"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build Rust backend for iOS
+        run: bash scripts/build_ios.sh
+
+      - name: Cache CocoaPods
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ios/Pods
+          key: pods-rust-${{ runner.os }}-${{ hashFiles('ios/Podfile', 'ios/Podfile.lock', 'rust_backend/MornyeBackend.podspec', 'rust_backend/Cargo.lock') }}
+          restore-keys: |
+            pods-rust-${{ runner.os }}-
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Prepare Flutter framework patch
+        run: dart scripts/prepare_flutter_sdk.dart
+
+      - name: Normalize ffmpeg plugin shell scripts (strip CRLF)
+        run: |
+          find "$HOME/.pub-cache/hosted" -path "*ffmpeg_kit_flutter_new_audio*/scripts/*.sh" -type f -print0 |
+            while IFS= read -r -d '' f; do
+              perl -pi -e 's/\r$//' "$f"
+              chmod +x "$f"
+              echo "Normalized line endings: $f"
+            done
+
+      - name: Generate app icons
+        run: dart run flutter_launcher_icons
+
+      - name: Configure Rust application pods
+        working-directory: ios
+        run: pod install
+
+      - name: Build iOS (unsigned)
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_API_SECRET: ${{ secrets.LASTFM_API_SECRET }}
+        run: |
+          flutter build ios --release --no-codesign --config-only --target lib/main.dart \
+            --dart-define="LASTFM_API_KEY=$LASTFM_API_KEY" \
+            --dart-define="LASTFM_API_SECRET=$LASTFM_API_SECRET" \
+            --dart-define="GIT_COMMIT=$(git rev-parse --short=8 HEAD)"
+
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Runner.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
+
+      - name: Create unsigned IPA
+        run: |
+          set -euo pipefail
+          rm -rf build/ios/ipa
+          mkdir -p build/ios/ipa
+          cd ios/build/Runner.xcarchive/Products/Applications
+          mkdir -p Payload
+          cp -a Runner.app Payload/
+          zip -r "$GITHUB_WORKSPACE/build/ios/ipa/Mornye-ios-lastfm-unsigned.ipa" Payload
+          rm -rf Payload
+
+      - name: Show IPA and checksum
+        run: |
+          ls -la build/ios/ipa/
+          shasum -a 256 build/ios/ipa/Mornye-ios-lastfm-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-ipa-lastfm
+          path: build/ios/ipa/Mornye-ios-lastfm-unsigned.ipa
+          retention-days: 14

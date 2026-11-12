@@ -600,7 +600,7 @@ class MusicPlayerRuntime {
       if (dependencies.isAndroid || dependencies.isIOS || isDesktopPlatform) {
         DiscordPresenceService.instance.bind(handler);
       }
-      if (isDesktopPlatform) {
+      if (dependencies.isIOS || isDesktopPlatform) {
         lastfm.bind(
           handler,
           unknownTitle: () => unknownTitle,
