@@ -19,7 +19,7 @@ permissions:
 jobs:
   build-ios:
     name: Build unsigned iOS IPA (Lite)
-    runs-on: macos-15
+    runs-on: xcode-27
     env:
       MORNYE_DISCORD_SDK: "0"
 
@@ -27,8 +27,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Show Xcode version
-        run: xcodebuild -version
+      - name: Select Xcode 27.1 if present, otherwise use image default
+        run: |
+          if [ -d /Applications/Xcode_27.1.app ]; then
+            sudo xcode-select -s /Applications/Xcode_27.1.app
+          fi
+          xcodebuild -version
 
       - name: Build Rust backend for iOS
         run: bash scripts/build_ios.sh
