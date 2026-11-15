@@ -6,7 +6,10 @@ import 'package:flutter/foundation.dart';
 import 'package:mornye/services/lastfm/lastfm_api.dart';
 import 'package:mornye/services/lastfm/lastfm_listening.dart';
 import 'package:mornye/services/lastfm/lastfm_store.dart';
+import 'package:mornye/utils/logger.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+final _log = AppLogger('Lastfm');
 
 enum LastfmProblem {
   connection,
@@ -96,6 +99,12 @@ class LastfmService extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
+    if (!configured) {
+      // The keys come from --dart-define at build time, so a build without
+      // them can never talk to Last.fm and would otherwise fail silently.
+      // Errors are the only level the buffer keeps while logging is off.
+      _log.e('Last.fm is unavailable: this build has no API key or secret');
+    }
     try {
       final saved = await _store.read();
       final session = await _store.readSession();
@@ -107,10 +116,15 @@ class LastfmService extends ChangeNotifier {
       _durable = true;
       _initialized = true;
       _problem = null;
+      _log.i(
+        'Last.fm state: configured=$configured connected=$connected '
+        'enabled=$_enabled nowPlaying=$_nowPlaying pending=${_queue.length}',
+      );
       _configure();
       unawaited(flush());
-    } catch (_) {
+    } catch (error) {
       _problem = LastfmProblem.storage;
+      _log.e('Could not read the saved Last.fm state', error);
     } finally {
       _initializing = null;
       _notify();
@@ -192,7 +206,8 @@ class LastfmService extends ChangeNotifier {
       if (!await _openBrowser(_api.authorizationUrl(token))) {
         throw StateError('Could not open Last.fm');
       }
-    } catch (_) {
+    } catch (error) {
+      _log.e('Could not start the Last.fm authorization', error);
       if (!_closed && generation == _generation) {
         _token = null;
         _problem = LastfmProblem.connection;
@@ -231,6 +246,7 @@ class LastfmService extends ChangeNotifier {
       _configure();
       unawaited(flush());
     } on LastfmException catch (error) {
+      _log.e('Could not finish the Last.fm authorization: ${error.code}');
       if (!_closed && generation == _generation) {
         _problem = error.code == 14
             ? LastfmProblem.pending
@@ -343,9 +359,11 @@ class LastfmService extends ChangeNotifier {
     try {
       await _api.nowPlaying(session, track.toJson());
     } on LastfmException catch (error) {
+      _log.w('Last.fm Now Playing was rejected: ${error.code}');
       if (error.code == 9) await _expiredSession(generation);
-    } catch (_) {
+    } catch (error) {
       // Now Playing describes a live moment, so failed requests are not retried.
+      _log.w('Last.fm Now Playing failed: $error');
     }
   }
 
@@ -365,6 +383,10 @@ class LastfmService extends ChangeNotifier {
     final oldest = _now().subtract(const Duration(days: 14));
     _queue.removeWhere((entry) => entry.started.isBefore(oldest));
     if (_queue.length > 2000) _queue.removeRange(0, _queue.length - 2000);
+    _log.i(
+      'Queued Last.fm scrobble "${track.artist} - ${track.title}" '
+      '(pending=${_queue.length})',
+    );
     await _saveSafely();
     unawaited(flush());
   }
@@ -397,6 +419,7 @@ class LastfmService extends ChangeNotifier {
         if (generation == _generation) _problem = null;
         _notify();
       } on LastfmException catch (error) {
+        _log.w('Last.fm rejected ${batch.length} scrobble(s): ${error.code}');
         if (error.code == 9) {
           await _expiredSession(generation);
         } else if (!_closed && generation == _generation && !error.retryable) {
@@ -408,6 +431,7 @@ class LastfmService extends ChangeNotifier {
             final rejected = batch.map((entry) => entry.id).toSet();
             _queue.removeWhere((entry) => rejected.contains(entry.id));
             _problem = LastfmProblem.rejected;
+            _log.e('Last.fm dropped ${batch.length} scrobble(s): ${error.code}');
           }
           await _saveSafely();
         } else if (!_closed && generation == _generation) {
@@ -415,7 +439,8 @@ class LastfmService extends ChangeNotifier {
           _notify();
         }
         return;
-      } catch (_) {
+      } catch (error) {
+        _log.w('Last.fm scrobble batch failed, kept for retry: $error');
         if (!_closed && generation == _generation) {
           _problem = _durable
               ? LastfmProblem.connection
