@@ -137,13 +137,15 @@ Widget _withLyricSupplements(
     'translation' => visibility.dy,
     _ => 1,
   };
+  // Presence follows the switches only: row measurement decides lane heights
+  // the same way, so the drawn line can never be taller than its row.
   final lanes = _lyricLanes(
     context,
     line,
     order: laneOrder,
     showOriginal: showOriginal,
-    showPronunciation: showPronunciation && visibility.dx > 0,
-    showTranslation: showTranslation && visibility.dy > 0,
+    showPronunciation: showPronunciation,
+    showTranslation: showTranslation,
   );
   if (lanes.isEmpty) return primary;
   final AlignmentGeometry alignment = switch (textAlign) {

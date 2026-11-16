@@ -74,6 +74,11 @@ Future<String?> showLyricsLanguagePicker(
   ),
 );
 
+/// A lane that is switched off gets the same crossed-out icon as the others,
+/// so no row looks like it can still be toggled but has no visible state.
+IconData _laneIcon(IconData icon, bool shown) =>
+    shown ? icon : Icons.visibility_off_outlined;
+
 /// The localized name of a lyric lane.
 String _lyricLaneLabel(AppLocalizations l10n, String id) => switch (id) {
   'original' => l10n.lyricsLaneOriginal,
@@ -245,7 +250,7 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           settings.playerShowOriginal
               ? l10n.nowPlayingHideOriginal
               : l10n.nowPlayingShowOriginal,
-          Icons.subject_rounded,
+          _laneIcon(Icons.subtitles_rounded, settings.playerShowOriginal),
         ),
       if (pronunciation)
         (
@@ -253,9 +258,10 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           settings.playerShowPronunciation
               ? l10n.nowPlayingHidePronunciation
               : l10n.nowPlayingShowPronunciation,
-          settings.playerShowPronunciation
-              ? Icons.voice_over_off_outlined
-              : Icons.record_voice_over_outlined,
+          _laneIcon(
+            Icons.record_voice_over_outlined,
+            settings.playerShowPronunciation,
+          ),
         ),
       if (translation)
         (
@@ -263,7 +269,7 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
           settings.playerShowTranslation
               ? l10n.nowPlayingHideTranslation
               : l10n.nowPlayingShowTranslation,
-          Icons.translate_rounded,
+          _laneIcon(Icons.translate_rounded, settings.playerShowTranslation),
         ),
       if (pronunciation || translation)
         (laneOrderAction, l10n.lyricsLaneOrderTitle, Icons.swap_vert_rounded),

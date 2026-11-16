@@ -28,6 +28,8 @@ class WordTimedLyricLine extends StatelessWidget {
     supplementVisibility: Offset.zero,
     laneOrder: _defaultLyricLaneOrder,
     showOriginal: true,
+    showPronunciation: true,
+    showTranslation: true,
     pronunciationLayout: null,
     textAlign: TextAlign.start,
     textStyle: style,
@@ -49,6 +51,11 @@ class _WordHighlightedLyricLine extends ConsumerStatefulWidget {
   /// When false and the line has a Latin or translated lane, only that lane is
   /// drawn.
   final bool showOriginal;
+
+  /// The listener's lane switches. Presence is decided here, never by the
+  /// animation values, so the row height matches what was measured.
+  final bool showPronunciation;
+  final bool showTranslation;
   final LyricPronunciationLayout? pronunciationLayout;
   final TextAlign textAlign;
   final TextStyle? textStyle;
@@ -63,6 +70,8 @@ class _WordHighlightedLyricLine extends ConsumerStatefulWidget {
     required this.supplementVisibility,
     required this.laneOrder,
     required this.showOriginal,
+    required this.showPronunciation,
+    required this.showTranslation,
     required this.pronunciationLayout,
     required this.textAlign,
     this.textStyle,
@@ -358,8 +367,8 @@ class _WordHighlightedLyricLineState
       visibility: widget.supplementVisibility,
       laneOrder: widget.laneOrder,
       showOriginal: widget.showOriginal,
-      showPronunciation: true,
-      showTranslation: true,
+      showPronunciation: widget.showPronunciation,
+      showTranslation: widget.showTranslation,
       pronunciationLayout: widget.pronunciationLayout,
       textAlign: widget.textAlign,
     );

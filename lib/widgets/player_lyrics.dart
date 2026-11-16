@@ -678,6 +678,15 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
           pronunciationHeight = aligned.pronunciationHeight;
         }
       }
+      // A font or a lane that measures to an unusable value would collapse the
+      // whole list; keep the row at a legible minimum instead.
+      if (!height.isFinite || height <= 0) height = 56;
+      if (!pronunciationHeight.isFinite || pronunciationHeight < 0) {
+        pronunciationHeight = 0;
+      }
+      if (!translationHeight.isFinite || translationHeight < 0) {
+        translationHeight = 0;
+      }
       _lineMeasurements[row] = (height, pronunciationHeight, translationHeight);
       _pronunciationLayouts[index] = pronunciationLayout;
       _measurementRevision++;
@@ -1164,6 +1173,8 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                   supplementVisibility: visibility,
                   laneOrder: laneOrder,
                   showOriginal: widget.showOriginal,
+                  showPronunciation: widget.showPronunciation,
+                  showTranslation: widget.showTranslation,
                   pronunciationLayout: mornye
                       ? _pronunciationLayouts[index]
                       : null,
@@ -1533,8 +1544,12 @@ class _LyricExtentSnapshot extends ListBase<double> {
   set length(int value) => throw UnsupportedError('Immutable lyric extents');
 
   @override
-  double operator [](int index) =>
-      _value(geometry.starts[index], geometry.changes[index]);
+  double operator [](int index) {
+    final value = _value(geometry.starts[index], geometry.changes[index]);
+    // A lane that switches with the animation running can land on an edge;
+    // the list rejects a zero or negative row height.
+    return value.isFinite && value > 0 ? value : 0.01;
+  }
 
   @override
   void operator []=(int index, double value) =>
