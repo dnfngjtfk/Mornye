@@ -1096,6 +1096,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setPlayerShowTranslation(bool visible) =>
       _commit(state.copyWith(playerShowTranslation: visible));
 
+  /// Stores the lane order as the player draws it, top to bottom.
+  void setPlayerLaneOrder(List<String> order) =>
+      _commit(state.copyWith(playerLaneOrder: order));
+
   void setPlayerShowVolume(bool visible) =>
       _commit(state.copyWith(playerShowVolume: visible));
 }

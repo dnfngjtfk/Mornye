@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mornye/l10n/l10n.dart';
 import 'package:mornye/providers/music_player_provider.dart';
 import 'package:mornye/providers/runtime_profile_provider.dart';
+import 'package:mornye/providers/settings_provider.dart';
 import 'package:mornye/providers/theme_provider.dart';
 import 'package:mornye/theme/app_tokens.dart';
 import 'package:mornye/theme/mornye_theme.dart';
@@ -569,12 +570,26 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
     super.dispose();
   }
 
-  void _measureMornyeLines(BuildContext context, double width) {
+  void _measureMornyeLines(
+    BuildContext context,
+    double width,
+    List<String> laneOrder,
+  ) {
     final style = _primaryLyricStyle(context);
     final scaler = MediaQuery.textScalerOf(context);
     final direction = Directionality.of(context);
     final locale = Localizations.maybeLocaleOf(context);
-    final key = (width, style, scaler, direction, locale);
+    final key = (
+      width,
+      style,
+      scaler,
+      direction,
+      locale,
+      laneOrder,
+      widget.showOriginal,
+      widget.showPronunciation,
+      widget.showTranslation,
+    );
     if (_lineLayoutKey == key) {
       _measureVisibleRows();
       _scheduleLineMeasurements();
@@ -610,43 +625,57 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
         _measurementRevision++;
         return;
       }
-      painter.text = TextSpan(
-        text: line.text,
-        style: _primaryLyricStyle(context, background: line.isBackground),
+      final lanes = _lyricLanes(
+        context,
+        line,
+        order: laneOrder,
+        showOriginal: widget.showOriginal,
+        showPronunciation: widget.showPronunciation,
+        showTranslation: widget.showTranslation,
       );
-      painter.layout(maxWidth: width);
+      final primaryStyle = _primaryLyricStyle(
+        context,
+        background: line.isBackground,
+      );
+      void layoutLane(String text, TextStyle style) {
+        painter.text = TextSpan(text: text, style: style);
+        painter.layout(maxWidth: width);
+      }
+
+      // The first lane is the line itself; the rest are its supplements, so a
+      // hidden lane reserves no height at all.
       final padding = _linePadding(index).vertical;
+      layoutLane(lanes.isEmpty ? line.text : lanes.first.$2, primaryStyle);
       var height = painter.height + padding;
       var pronunciationHeight = 0.0;
       var translationHeight = 0.0;
       LyricPronunciationLayout? pronunciationLayout;
-      for (final (text, style, _, translation) in _lyricSupplements(
-        context,
-        line,
-      )) {
-        painter.text = TextSpan(text: text, style: style);
-        painter.layout(maxWidth: width);
+      final inlinePronunciation =
+          lanes.length > 1 &&
+          lanes.first.$1 == 'original' &&
+          lanes[1].$1 == 'pronunciation';
+      for (var lane = 1; lane < lanes.length; lane++) {
+        final (_, text, _, style, translation) = lanes[lane];
+        layoutLane(text, style);
         if (translation) {
-          translationHeight = 6 + painter.height;
-        } else {
-          pronunciationHeight = 6 + painter.height;
-          final aligned = LyricPronunciationLayout.measure(
-            line: line,
-            primaryStyle: _primaryLyricStyle(
-              context,
-              background: line.isBackground,
-            ),
-            pronunciationStyle: style,
-            maxWidth: width,
-            textScaler: scaler,
-            textDirection: direction,
-            locale: locale,
-          );
-          if (aligned != null) {
-            pronunciationLayout = aligned;
-            height = aligned.primaryHeight + padding;
-            pronunciationHeight = aligned.pronunciationHeight;
-          }
+          translationHeight = _lyricSupplementGap + painter.height;
+          continue;
+        }
+        pronunciationHeight = _lyricSupplementGap + painter.height;
+        if (!inlinePronunciation || lane != 1) continue;
+        final aligned = LyricPronunciationLayout.measure(
+          line: line,
+          primaryStyle: primaryStyle,
+          pronunciationStyle: style,
+          maxWidth: width,
+          textScaler: scaler,
+          textDirection: direction,
+          locale: locale,
+        );
+        if (aligned != null) {
+          pronunciationLayout = aligned;
+          height = aligned.primaryHeight + padding;
+          pronunciationHeight = aligned.pronunciationHeight;
         }
       }
       _lineMeasurements[row] = (height, pronunciationHeight, translationHeight);
@@ -895,6 +924,9 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
         ? ref.watch(playbackLoadingProvider)
         : ref.read(playbackLoadingProvider);
     final mornye = context.isMornye;
+    final laneOrder = ref.watch(
+      settingsProvider.select((settings) => settings.playerLaneOrder),
+    );
     final highContrast = MediaQuery.highContrastOf(context);
     final blurStrength = ref.watch(
       themeProvider.select((theme) => theme.lyricsBlur),
@@ -969,7 +1001,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                 previousExtents?.offsetForRow(previousScrollAnchor) ?? 0;
             final previousFocusOffset =
                 previousExtents?.offsetForRow(focusAnchor) ?? 0;
-            _measureMornyeLines(context, layoutWidth);
+            _measureMornyeLines(context, layoutWidth, laneOrder);
             // Reuse text measurements; only interpolate row heights as the
             // supplements fade. Scrolling follows the same animation clock.
             final geometryKey = (
@@ -1130,6 +1162,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                   initialPosition: _activeTransitionPosition,
                   seekPreview: widget.seekPreview,
                   supplementVisibility: visibility,
+                  laneOrder: laneOrder,
                   showOriginal: widget.showOriginal,
                   pronunciationLayout: mornye
                       ? _pronunciationLayouts[index]
@@ -1151,7 +1184,10 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                   content,
                   color,
                   visibility: visibility,
+                  laneOrder: laneOrder,
                   showOriginal: widget.showOriginal,
+                  showPronunciation: widget.showPronunciation,
+                  showTranslation: widget.showTranslation,
                   pronunciationLayout: mornye
                       ? _pronunciationLayouts[index]
                       : null,

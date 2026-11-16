@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,8 @@ Future<void> _pump(
   WidgetTester tester, {
   required ParsedLyrics lyrics,
   required bool showOriginal,
+  bool showPronunciation = true,
+  bool showTranslation = true,
 }) async {
   final theme = MornyeTheme.build(Brightness.dark);
   final preview = ValueNotifier<Duration?>(
@@ -55,8 +59,8 @@ Future<void> _pump(
               colorScheme: theme.colorScheme,
               isActive: true,
               showOriginal: showOriginal,
-              showPronunciation: true,
-              showTranslation: true,
+              showPronunciation: showPronunciation,
+              showTranslation: showTranslation,
             ),
           ),
         ),
@@ -76,6 +80,43 @@ void main() {
     expect(find.text('Original'), findsOneWidget);
     expect(find.text('Original text'), findsOneWidget);
     expect(find.text('Оригинал'), findsNothing);
+    // The remaining lane reads at the primary size instead of shrinking into a
+    // subtitle, and the hidden lane no longer reserves its height.
+    final latin = tester.widget<Text>(find.text('Original'));
+    final primarySize = tester.widget<Text>(find.text('Второй')).style?.fontSize;
+    expect(latin.style?.fontSize, primarySize);
+  });
+
+  testWidgets('a single remaining lane renders as ordinary synced lyrics', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      lyrics: _lyrics(lanes: true),
+      showOriginal: false,
+      showTranslation: false,
+    );
+    expect(find.text('Original text'), findsNothing);
+    final latin = tester.widget<Text>(find.text('Original'));
+    final plain = tester.widget<Text>(find.text('Второй'));
+    expect(latin.style, plain.style);
+    expect(latin.textAlign, plain.textAlign);
+  });
+
+  testWidgets('a stored lane order decides which lane leads', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'app_settings': jsonEncode({
+        'playerLaneOrder': ['translation', 'pronunciation', 'original'],
+      }),
+    });
+    await _pump(tester, lyrics: _lyrics(lanes: true), showOriginal: true);
+    final translated = tester.widget<Text>(find.text('Original text'));
+    final original = tester.widget<Text>(find.text('Оригинал'));
+    expect(find.text('Original'), findsOneWidget);
+    expect(
+      translated.style!.fontSize!,
+      greaterThan(original.style!.fontSize!),
+    );
   });
 
   testWidgets('a line without lanes keeps its original text', (tester) async {

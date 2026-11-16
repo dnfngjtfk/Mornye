@@ -7116,6 +7116,11 @@
     "description": "Tooltip for the player menu that shows or hides existing lyric pronunciation and translation"
   },
   "nowPlayingHidePronunciation": "Hide Pronunciation",
+  "lyricsLaneOrderTitle": "Lane order",
+  "lyricsLaneOrderSubtitle": "Drag to choose which lane is the line and which sit under it.",
+  "lyricsLaneOriginal": "Original",
+  "lyricsLanePronunciation": "Pronunciation",
+  "lyricsLaneTranslation": "Translation",
   "nowPlayingShowPronunciation": "Show Pronunciation",
   "nowPlayingHideOriginal": "Hide Original",
   "nowPlayingShowOriginal": "Show Original",

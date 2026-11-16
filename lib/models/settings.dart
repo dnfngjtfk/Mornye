@@ -278,6 +278,10 @@ class AppSettings {
   final bool playerShowPronunciation;
   final bool playerShowTranslation;
 
+  /// The vertical order of the lyric lanes, top to bottom. The first lane
+  /// that is switched on is drawn as the line itself, the rest under it.
+  final List<String> playerLaneOrder;
+
   /// Whether the phone Now Playing screen shows its volume slider.
   final bool playerShowVolume;
 
@@ -414,6 +418,7 @@ class AppSettings {
     this.playerShowOriginal = false,
     this.playerShowPronunciation = true,
     this.playerShowTranslation = true,
+    this.playerLaneOrder = const ['original', 'pronunciation', 'translation'],
     this.playerShowVolume = true,
   });
 
@@ -565,6 +570,7 @@ class AppSettings {
     bool? playerShowOriginal,
     bool? playerShowPronunciation,
     bool? playerShowTranslation,
+    List<String>? playerLaneOrder,
     bool? playerShowVolume,
   }) {
     return AppSettings(
@@ -739,6 +745,7 @@ class AppSettings {
           playerShowPronunciation ?? this.playerShowPronunciation,
       playerShowTranslation:
           playerShowTranslation ?? this.playerShowTranslation,
+      playerLaneOrder: playerLaneOrder ?? this.playerLaneOrder,
       playerShowVolume: playerShowVolume ?? this.playerShowVolume,
     );
   }

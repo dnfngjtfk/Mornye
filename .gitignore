@@ -15,6 +15,8 @@ Desktop.ini
 .claude/settings.local.json
 CLAUDE.md
 AGENTS.md
+# Agent's own patch notes, never committed.
+AGENT_NOTES.md
 
 # Local release notes, screenshots and promo assets
 /output/

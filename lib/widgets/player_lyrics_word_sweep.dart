@@ -26,6 +26,7 @@ class WordTimedLyricLine extends StatelessWidget {
     initialPosition: initialPosition,
     seekPreview: seekPreview,
     supplementVisibility: Offset.zero,
+    laneOrder: _defaultLyricLaneOrder,
     showOriginal: true,
     pronunciationLayout: null,
     textAlign: TextAlign.start,
@@ -42,6 +43,9 @@ class _WordHighlightedLyricLine extends ConsumerStatefulWidget {
   final ValueListenable<Duration?> seekPreview;
   final Offset supplementVisibility;
 
+  /// The listener's lane order, top to bottom.
+  final List<String> laneOrder;
+
   /// When false and the line has a Latin or translated lane, only that lane is
   /// drawn.
   final bool showOriginal;
@@ -57,6 +61,7 @@ class _WordHighlightedLyricLine extends ConsumerStatefulWidget {
     required this.initialPosition,
     required this.seekPreview,
     required this.supplementVisibility,
+    required this.laneOrder,
     required this.showOriginal,
     required this.pronunciationLayout,
     required this.textAlign,
@@ -351,7 +356,10 @@ class _WordHighlightedLyricLineState
       timedSupplementText: (text, words, style) =>
           _buildTimedText(text, words, style, lift: false),
       visibility: widget.supplementVisibility,
+      laneOrder: widget.laneOrder,
       showOriginal: widget.showOriginal,
+      showPronunciation: true,
+      showTranslation: true,
       pronunciationLayout: widget.pronunciationLayout,
       textAlign: widget.textAlign,
     );

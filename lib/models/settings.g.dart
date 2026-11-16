@@ -190,6 +190,11 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   playerShowOriginal: json['playerShowOriginal'] as bool? ?? false,
   playerShowPronunciation: json['playerShowPronunciation'] as bool? ?? true,
   playerShowTranslation: json['playerShowTranslation'] as bool? ?? true,
+  playerLaneOrder:
+      (json['playerLaneOrder'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const ['original', 'pronunciation', 'translation'],
   playerShowVolume: json['playerShowVolume'] as bool? ?? true,
 );
 
@@ -323,6 +328,7 @@ Map<String, dynamic> _$AppSettingsToJson(
   'playerShowOriginal': instance.playerShowOriginal,
   'playerShowPronunciation': instance.playerShowPronunciation,
   'playerShowTranslation': instance.playerShowTranslation,
+  'playerLaneOrder': instance.playerLaneOrder,
   'playerShowVolume': instance.playerShowVolume,
 };
 

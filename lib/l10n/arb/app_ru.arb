@@ -7078,6 +7078,11 @@
     "description": "Tooltip for the player menu that shows or hides existing lyric pronunciation and translation"
   },
   "nowPlayingHidePronunciation": "Скрыть произношение",
+  "lyricsLaneOrderTitle": "Порядок дорожек",
+  "lyricsLaneOrderSubtitle": "Перетащи, чтобы выбрать, какая дорожка главная, а какие под ней.",
+  "lyricsLaneOriginal": "Оригинал",
+  "lyricsLanePronunciation": "Произношение",
+  "lyricsLaneTranslation": "Перевод",
   "nowPlayingShowPronunciation": "Показать произношение",
   "nowPlayingHideOriginal": "Скрыть оригинал",
   "nowPlayingShowOriginal": "Показать оригинал",

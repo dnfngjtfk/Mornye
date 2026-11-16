@@ -74,6 +74,13 @@ Future<String?> showLyricsLanguagePicker(
   ),
 );
 
+/// The localized name of a lyric lane.
+String _lyricLaneLabel(AppLocalizations l10n, String id) => switch (id) {
+  'original' => l10n.lyricsLaneOriginal,
+  'pronunciation' => l10n.lyricsLanePronunciation,
+  _ => l10n.lyricsLaneTranslation,
+};
+
 /// The player's lyrics language menu: pronunciation and translation
 /// toggles, plus AI translation once a provider is set up. Hidden when it
 /// would offer nothing.
@@ -99,6 +106,9 @@ class LyricsOptionsButton extends ConsumerStatefulWidget {
   ConsumerState<LyricsOptionsButton> createState() =>
       _LyricsOptionsButtonState();
 }
+
+/// The menu action that opens the lane order sheet.
+const String laneOrderAction = 'laneOrder';
 
 class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
   bool _open = false;
@@ -255,6 +265,8 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
               : l10n.nowPlayingShowTranslation,
           Icons.translate_rounded,
         ),
+      if (pronunciation || translation)
+        (laneOrderAction, l10n.lyricsLaneOrderTitle, Icons.swap_vert_rounded),
       if (translating)
         (
           'cancelTranslation',
@@ -353,11 +365,22 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     } finally {
       // The language sheet and the editor keep controls visible until they
       // close.
-      if (action != 'translateInto' && action != 'edit') _setOpen(false);
+      if (action != 'translateInto' &&
+          action != 'edit' &&
+          action != laneOrderAction) {
+        _setOpen(false);
+      }
     }
     if (action == 'edit') {
       try {
         if (mounted) await openLyricsEditor(context, widget.metadata);
+      } finally {
+        _setOpen(false);
+      }
+    }
+    if (action == laneOrderAction) {
+      try {
+        await _reorderLanes();
       } finally {
         _setOpen(false);
       }
@@ -369,6 +392,47 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
         _setOpen(false);
       }
     }
+  }
+
+  /// Reorders the lyric lanes. Every move is stored at once, so the player
+  /// behind the sheet follows the drag.
+  Future<void> _reorderLanes() async {
+    final l10n = context.l10n;
+    final lanes = normalizedLyricLaneOrder(
+      ref.read(settingsProvider).playerLaneOrder,
+    );
+    await showAppScrollableBottomSheet<void>(
+      context: context,
+      title: l10n.lyricsLaneOrderTitle,
+      subtitle: l10n.lyricsLaneOrderSubtitle,
+      builder: (sheetContext, controller) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => ReorderableListView(
+          buildDefaultDragHandles: false,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 16),
+          onReorderItem: (oldIndex, newIndex) {
+            setSheetState(() {
+              lanes.insert(newIndex, lanes.removeAt(oldIndex));
+            });
+            ref
+                .read(settingsProvider.notifier)
+                .setPlayerLaneOrder(List.of(lanes));
+          },
+          children: [
+            for (var index = 0; index < lanes.length; index++)
+              ListTile(
+                key: ValueKey('lyrics-lane-${lanes[index]}'),
+                leading: ReorderableDragStartListener(
+                  index: index,
+                  child: const AppIcon(Icons.drag_handle),
+                ),
+                title: Text(_lyricLaneLabel(l10n, lanes[index])),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Translates into the language from settings, or into one picked now

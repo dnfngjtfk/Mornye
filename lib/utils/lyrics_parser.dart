@@ -137,6 +137,22 @@ class LyricLine {
   );
 }
 
+/// Lyric lane identifiers, shared by the parser, the player and the settings.
+const List<String> lyricLaneIds = [
+  'original',
+  'pronunciation',
+  'translation',
+];
+
+/// [order] with unknown identifiers dropped and missing lanes appended, so a
+/// stored value from another version still shows every lane.
+List<String> normalizedLyricLaneOrder(List<String> order) => [
+  for (final id in order)
+    if (lyricLaneIds.contains(id)) id,
+  for (final id in lyricLaneIds)
+    if (!order.contains(id)) id,
+];
+
 class ParsedLyrics {
   final bool synced;
   final bool wordSynced;
