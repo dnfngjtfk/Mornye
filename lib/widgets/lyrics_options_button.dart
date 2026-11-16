@@ -227,6 +227,16 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
     final l10n = context.l10n;
     final target = lyricsTranslationTargetFor(settings);
     final actions = <(String, String, IconData)>[
+      // Mirrors the desktop player: the original text is its own lane, so a
+      // Latin or translated script can be read on its own.
+      if (pronunciation || translation)
+        (
+          'original',
+          settings.playerShowOriginal
+              ? l10n.nowPlayingHideOriginal
+              : l10n.nowPlayingShowOriginal,
+          Icons.subject_rounded,
+        ),
       if (pronunciation)
         (
           'pronunciation',
@@ -329,6 +339,8 @@ class _LyricsOptionsButtonState extends ConsumerState<LyricsOptionsButton> {
       if (!mounted) return;
       final notifier = ref.read(settingsProvider.notifier);
       switch (action) {
+        case 'original':
+          notifier.setPlayerShowOriginal(!settings.playerShowOriginal);
         case 'pronunciation':
           notifier.setPlayerShowPronunciation(
             !settings.playerShowPronunciation,

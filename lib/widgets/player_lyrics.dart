@@ -69,6 +69,7 @@ class SyncedLyricsView extends ConsumerStatefulWidget {
   final LyricsCredits? credits;
   final ColorScheme colorScheme;
   final bool isActive;
+  final bool showOriginal;
   final bool showPronunciation;
   final bool showTranslation;
 
@@ -85,6 +86,7 @@ class SyncedLyricsView extends ConsumerStatefulWidget {
     this.credits,
     required this.colorScheme,
     required this.isActive,
+    this.showOriginal = true,
     required this.showPronunciation,
     required this.showTranslation,
     this.animateWords = true,
@@ -1128,6 +1130,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                   initialPosition: _activeTransitionPosition,
                   seekPreview: widget.seekPreview,
                   supplementVisibility: visibility,
+                  showOriginal: widget.showOriginal,
                   pronunciationLayout: mornye
                       ? _pronunciationLayouts[index]
                       : null,
@@ -1148,6 +1151,7 @@ class _SyncedLyricsViewState extends ConsumerState<SyncedLyricsView>
                   content,
                   color,
                   visibility: visibility,
+                  showOriginal: widget.showOriginal,
                   pronunciationLayout: mornye
                       ? _pronunciationLayouts[index]
                       : null,

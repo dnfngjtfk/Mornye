@@ -7079,6 +7079,8 @@
   },
   "nowPlayingHidePronunciation": "Скрыть произношение",
   "nowPlayingShowPronunciation": "Показать произношение",
+  "nowPlayingHideOriginal": "Скрыть оригинал",
+  "nowPlayingShowOriginal": "Показать оригинал",
   "nowPlayingHideTranslation": "Скрыть перевод",
   "nowPlayingShowTranslation": "Показать перевод",
   "@nowPlayingNoLyrics": {

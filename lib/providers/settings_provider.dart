@@ -1087,6 +1087,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
     state.copyWith(playerMode: mode == 'internal' ? 'internal' : 'external'),
   );
 
+  void setPlayerShowOriginal(bool visible) =>
+      _commit(state.copyWith(playerShowOriginal: visible));
+
   void setPlayerShowPronunciation(bool visible) =>
       _commit(state.copyWith(playerShowPronunciation: visible));
 

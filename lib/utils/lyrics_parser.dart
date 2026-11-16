@@ -239,6 +239,11 @@ class LyricsParser {
     final text = (raw ?? '').trim();
     if (text.isEmpty) return ParsedLyrics.empty;
 
+    // Our own multi-language sidecar wins over every single-lane format: it
+    // carries the original, Latin and translated lanes of the same line.
+    final lanes = _parseSidecarLanes(text);
+    if (lanes != null) return _withCredits(text, lanes);
+
     if (_looksLikeTtml(text)) {
       final ttml = _parseTtml(text);
       if (ttml != null && ttml.lines.isNotEmpty) {
@@ -331,6 +336,70 @@ class LyricsParser {
       plainText: plainText,
       writers: writers?.isNotEmpty == true ? writers : null,
       provider: provider?.isNotEmpty == true ? provider : null,
+    );
+  }
+
+  // [mm:ss.xx][orig] / [lat] / [ru] — one lane per line, timestamps shared by
+  // consecutive lanes of the same line.
+  static final RegExp _sidecarLane = RegExp(
+    r'^\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]\[([A-Za-z]+)\][ \t]?(.*)$',
+  );
+
+  static ParsedLyrics? _parseSidecarLanes(String text) {
+    final lanes = <_SidecarLane>[];
+    for (final rawLine in text.split(RegExp(r'\r\n|\r|\n'))) {
+      final line = rawLine.trim();
+      if (line.isEmpty || line.startsWith('#')) continue;
+      final match = _sidecarLane.firstMatch(line);
+      if (match == null) continue;
+      final time = _toDuration(match.group(1), match.group(2), match.group(3));
+      if (time == null) continue;
+      if (lanes.isEmpty || lanes.last.time != time) {
+        lanes.add(_SidecarLane(time));
+      }
+      final content = match.group(5) ?? '';
+      switch (match.group(4)!.toLowerCase()) {
+        case 'orig':
+          lanes.last
+            ..text = content.replaceAll(_wordTimeTag, '').trim()
+            ..words = _parseWords(content);
+        case 'lat':
+          lanes.last.romanization = content.replaceAll(_wordTimeTag, '').trim();
+        case 'ru':
+          lanes.last.translation = content.replaceAll(_wordTimeTag, '').trim();
+      }
+    }
+    final kept = lanes.where((lane) => lane.text.trim().isNotEmpty).toList();
+    if (kept.length < 2) return null;
+
+    var sawWords = false;
+    final lines = <LyricLine>[];
+    for (var i = 0; i < kept.length; i++) {
+      final lane = kept[i];
+      sawWords |= lane.words.isNotEmpty;
+      lines.add(
+        LyricLine(
+          time: lane.time,
+          end: lane.words.lastOrNull?.end,
+          text: lane.text,
+          words: lane.words,
+          romanization: lane.romanization?.isEmpty == true
+              ? null
+              : lane.romanization,
+          translation: lane.translation?.isEmpty == true
+              ? null
+              : lane.translation,
+          vocalGroup: i,
+        ),
+      );
+    }
+    _sortLines(lines);
+    final synced = _hasUsableTiming(lines);
+    return ParsedLyrics(
+      synced: synced,
+      wordSynced: synced && sawWords,
+      lines: lines,
+      plainText: kept.map((lane) => lane.text).where((l) => l.isNotEmpty).join('\n'),
     );
   }
 
@@ -858,6 +927,16 @@ class LyricsParser {
       return timing != 0 ? timing : order[a]!.compareTo(order[b]!);
     });
   }
+}
+
+class _SidecarLane {
+  _SidecarLane(this.time);
+
+  final Duration time;
+  String text = '';
+  String? romanization;
+  String? translation;
+  List<LyricWord> words = const [];
 }
 
 class _TtmlVocalRun {

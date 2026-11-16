@@ -383,6 +383,36 @@ ${_tag('romaji', 1009, 'Romanized')}
     expect(line.words.map((word) => word.end?.inMilliseconds), [1300, 2000]);
   });
 
+  test('a multi-language sidecar keeps all three lanes per line', () {
+    final lyrics = LyricsParser.parse('''
+# strawberry-subs v1
+[00:01.00][orig]<00:01.00>Ми<00:01.20>гом
+[00:01.00][lat]Mi<00:01.20>gom
+[00:01.00][ru]Мигом
+[00:03.00][orig]<00:03.00>Второй
+[00:03.00][lat]Vtoroy
+[00:03.00][ru]Второй
+''');
+    expect(lyrics.synced, isTrue);
+    expect(lyrics.wordSynced, isTrue);
+    expect(lyrics.lines.map((line) => line.text), ['Мигом', 'Второй']);
+    expect(lyrics.lines.first.romanization, 'Migom');
+    expect(lyrics.lines.first.translation, 'Мигом');
+    expect(lyrics.lines.first.words.length, 2);
+    expect(lyrics.lines.first.words.first.time.inMilliseconds, 1000);
+  });
+
+  test('a sidecar line without Latin or translation keeps the text alone', () {
+    final lyrics = LyricsParser.parse('''
+[00:01.00][orig]First line
+[00:03.00][orig]Second line
+''');
+    expect(lyrics.synced, isTrue);
+    expect(lyrics.lines.length, 2);
+    expect(lyrics.lines.every((line) => line.romanization == null), isTrue);
+    expect(lyrics.lines.every((line) => line.translation == null), isTrue);
+  });
+
   test('TTML span ends survive independently of the paragraph end', () {
     final line = LyricsParser.parse('''
 <tt xmlns="http://www.w3.org/ns/ttml"><body><div>

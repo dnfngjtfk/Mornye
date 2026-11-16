@@ -68,22 +68,26 @@ Widget _withLyricSupplements(
   Widget primary,
   Color color, {
   required Offset visibility,
+
+  /// False hides the original lane, leaving the Latin and translated lanes.
+  /// A line without either keeps its original text so it never disappears.
+  required bool showOriginal,
   required LyricPronunciationLayout? pronunciationLayout,
   required TextAlign textAlign,
   Widget Function(String, List<LyricWord>, TextStyle)? timedText,
   Widget Function(String, List<LyricWord>, TextStyle)? timedSupplementText,
 }) {
-  if (line.romanization == null && line.translation == null) return primary;
+  final supplements = _lyricSupplements(context, line).toList();
+  if (supplements.isEmpty) return primary;
   final AlignmentGeometry alignment = switch (textAlign) {
     TextAlign.end => AlignmentDirectional.topEnd,
     TextAlign.center => Alignment.topCenter,
     _ => AlignmentDirectional.topStart,
   };
-  final supplements = _lyricSupplements(context, line).toList();
-  Widget withSupplements(Widget primary, {bool aligned = false}) => Column(
+  Widget withSupplements(Widget? primary, {bool aligned = false}) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      primary,
+      ?primary,
       for (final (text, style, words, translation) in supplements)
         if ((translation || !aligned) &&
             (translation ? visibility.dy : visibility.dx) > 0)
@@ -105,6 +109,7 @@ Widget _withLyricSupplements(
           ),
     ],
   );
+  if (!showOriginal) return withSupplements(null);
   if (!context.isMornye ||
       line.romanizationWords.isEmpty ||
       line.romanization?.trim().isNotEmpty != true) {

@@ -7117,6 +7117,8 @@
   },
   "nowPlayingHidePronunciation": "Hide Pronunciation",
   "nowPlayingShowPronunciation": "Show Pronunciation",
+  "nowPlayingHideOriginal": "Hide Original",
+  "nowPlayingShowOriginal": "Show Original",
   "nowPlayingHideTranslation": "Hide Translation",
   "nowPlayingShowTranslation": "Show Translation",
   "@nowPlayingNoLyrics": {

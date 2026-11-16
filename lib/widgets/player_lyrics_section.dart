@@ -42,8 +42,11 @@ class PlayerLyricsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final visibility = ref.watch(
       settingsProvider.select(
-        (settings) =>
-            (settings.playerShowPronunciation, settings.playerShowTranslation),
+        (settings) => (
+          settings.playerShowOriginal,
+          settings.playerShowPronunciation,
+          settings.playerShowTranslation,
+        ),
       ),
     );
     // The AI translation is keyed by these; a change picks another one.
@@ -74,7 +77,7 @@ class PlayerLyricsSection extends ConsumerWidget {
 
   Widget _buildLyricsSection(
     BuildContext context,
-    (bool, bool) visibility,
+    (bool, bool, bool) visibility,
     ParsedLyrics lyrics,
   ) {
     // Center in the part the player's controls leave visible. Only these
@@ -166,7 +169,7 @@ class PlayerLyricsSection extends ConsumerWidget {
 
   Widget _lyricsContent(
     BuildContext context,
-    (bool, bool) visibility,
+    (bool, bool, bool) visibility,
     ParsedLyrics lyrics,
   ) {
     if (metadata.lyrics.synced) {
@@ -180,8 +183,9 @@ class PlayerLyricsSection extends ConsumerWidget {
             colorScheme: colorScheme,
             isActive: isActive,
             animateWords: animateWords,
-            showPronunciation: visibility.$1,
-            showTranslation: visibility.$2,
+            showOriginal: visibility.$1,
+            showPronunciation: visibility.$2,
+            showTranslation: visibility.$3,
             onLongPressLine: onShareLyrics,
           ),
           if (options != null)

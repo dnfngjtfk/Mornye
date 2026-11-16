@@ -274,6 +274,7 @@ class AppSettings {
   final bool saveDownloadHistory;
 
   final String playerMode;
+  final bool playerShowOriginal;
   final bool playerShowPronunciation;
   final bool playerShowTranslation;
 
@@ -410,6 +411,7 @@ class AppSettings {
     this.allowQualityVariants = false,
     this.saveDownloadHistory = true,
     this.playerMode = 'internal',
+    this.playerShowOriginal = false,
     this.playerShowPronunciation = true,
     this.playerShowTranslation = true,
     this.playerShowVolume = true,
@@ -560,6 +562,7 @@ class AppSettings {
     bool? allowQualityVariants,
     bool? saveDownloadHistory,
     String? playerMode,
+    bool? playerShowOriginal,
     bool? playerShowPronunciation,
     bool? playerShowTranslation,
     bool? playerShowVolume,
@@ -731,6 +734,7 @@ class AppSettings {
       allowQualityVariants: allowQualityVariants ?? this.allowQualityVariants,
       saveDownloadHistory: saveDownloadHistory ?? this.saveDownloadHistory,
       playerMode: playerMode ?? this.playerMode,
+      playerShowOriginal: playerShowOriginal ?? this.playerShowOriginal,
       playerShowPronunciation:
           playerShowPronunciation ?? this.playerShowPronunciation,
       playerShowTranslation:

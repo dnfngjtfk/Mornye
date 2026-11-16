@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mornye/services/platform_bridge.dart';
+import 'package:mornye/services/lyrics_sidecar.dart';
 import 'package:mornye/services/playback_metadata.dart';
 import 'package:mornye/services/player_lyrics_persistence.dart';
 import 'package:mornye/services/source_metadata_events.dart';
@@ -266,9 +267,20 @@ class PlayerMetadataController extends ChangeNotifier {
       if (_disposed || generation != _generation) return;
       _probePending = false;
       _loadedPath = path;
-      final pending = _replaceMetadata(
-        mergePlaybackFileMetadata(_fallback, probed),
-      );
+      final merged = mergePlaybackFileMetadata(_fallback, probed);
+      // Sidecar files outrank tags: the local lyrics pipeline writes the
+      // original, Latin and translated lanes there.
+      final sidecar = await LyricsSidecar.read(path);
+      if (_disposed || generation != _generation) return;
+      if (sidecar.lyrics.synced) {
+        _publishMetadata(
+          Map.unmodifiable(merged),
+          sidecar.lyrics,
+          raw: sidecar.raw,
+        );
+        return;
+      }
+      final pending = _replaceMetadata(merged);
       if (pending != null) await pending;
     } catch (error) {
       if (_disposed || generation != _generation) return;
